@@ -14,6 +14,8 @@ import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
+import org.opencv.video.BackgroundSubtractor;
+import org.opencv.video.BackgroundSubtractorKNN;
 import org.opencv.video.BackgroundSubtractorMOG2;
 import org.opencv.video.Video;
 import org.opencv.videoio.VideoCapture;
@@ -26,6 +28,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     private Mat initialBackground = null;
     VideoCapture capture;
     BackgroundSubtractorMOG2 mog2;
+    BackgroundSubtractorKNN mog;
 
     // Used to load the 'native-lib' library on application startup.
     static {
@@ -50,6 +53,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         }
 
         mog2 = Video.createBackgroundSubtractorMOG2();
+        mog = Video.createBackgroundSubtractorKNN();
 
         mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.HelloOpenCvView);
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
@@ -103,16 +107,18 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     public Mat onCameraFrame(Mat inputFrame) {
         if(initialBackground == null) {
             initialBackground = inputFrame;
+
             return inputFrame;
 
         } else {
             Mat fgMask = new Mat();
 
-            mog2.apply(inputFrame, fgMask, 0.1);
+            mog2.apply(inputFrame, fgMask, 0.01);
+
             Mat output = new Mat();
             inputFrame.copyTo(output, fgMask);
 
-            return output;
+            return fgMask;
         }
 
     }
