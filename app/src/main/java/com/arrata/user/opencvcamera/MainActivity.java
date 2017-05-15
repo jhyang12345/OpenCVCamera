@@ -14,6 +14,8 @@ import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
 import org.opencv.video.BackgroundSubtractor;
 import org.opencv.video.BackgroundSubtractorKNN;
 import org.opencv.video.BackgroundSubtractorMOG2;
@@ -29,6 +31,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     VideoCapture capture;
     BackgroundSubtractorMOG2 mog2;
     BackgroundSubtractorKNN mog;
+
+    long backgroundTime;
 
     // Used to load the 'native-lib' library on application startup.
     static {
@@ -49,6 +53,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         //ask fo write permission
         if(Build.VERSION.SDK_INT >= 23) {
+
             requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA}, 0);
         }
 
@@ -56,6 +61,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         mog = Video.createBackgroundSubtractorKNN();
 
         mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.HelloOpenCvView);
+        mOpenCvCameraView.setMaxFrameSize(756, 567);//setting max frame size
+        //Should later be set accordingly to the screen ratio of each phone
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCameraIndex(1);
 
@@ -107,13 +114,21 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     public Mat onCameraFrame(Mat inputFrame) {
         if(initialBackground == null) {
             initialBackground = inputFrame;
-
+            backgroundTime = System.currentTimeMillis();
             return inputFrame;
 
         } else {
+            System.gc();
             Mat fgMask = new Mat();
 
-            mog2.apply(inputFrame, fgMask, 0.01);
+            if(System.currentTimeMillis() - backgroundTime < 3000) {
+                mog.apply(inputFrame, fgMask, 0.05);
+            } else {
+                mog.apply(inputFrame, fgMask, 0.0001);
+                Imgproc.dilate(inputFrame, inputFrame, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(2,2)));
+                Imgproc.erode(inputFrame, inputFrame, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(2,2)));
+
+            }
 
             Mat output = new Mat();
             inputFrame.copyTo(output, fgMask);
