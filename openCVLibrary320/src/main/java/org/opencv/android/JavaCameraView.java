@@ -2,15 +2,18 @@ package org.opencv.android;
 
 import java.util.List;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.os.Build;
+import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.ViewGroup.LayoutParams;
+import android.widget.Toast;
 
 import org.opencv.BuildConfig;
 import org.opencv.core.CvType;
@@ -42,6 +45,8 @@ public class JavaCameraView extends CameraBridgeViewBase implements PreviewCallb
     protected JavaCameraFrame[] mCameraFrame;
     private SurfaceTexture mSurfaceTexture;
 
+    private boolean isExposureLocked = false;
+
     public static class JavaCameraSizeAccessor implements ListItemAccessor {
 
         @Override
@@ -63,6 +68,7 @@ public class JavaCameraView extends CameraBridgeViewBase implements PreviewCallb
 
     public JavaCameraView(Context context, AttributeSet attrs) {
         super(context, attrs);
+
     }
 
     protected boolean initializeCamera(int width, int height) {
@@ -140,6 +146,36 @@ public class JavaCameraView extends CameraBridgeViewBase implements PreviewCallb
                 Camera.Parameters params = mCamera.getParameters();
                 Log.d(TAG, "getSupportedPreviewSizes()");
                 List<android.hardware.Camera.Size> sizes = params.getSupportedPreviewSizes();
+
+                //ADDED CODE!!!
+
+                Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        Camera.Parameters params = mCamera.getParameters();
+                        if (params.isAutoExposureLockSupported()) {
+                            isExposureLocked = !isExposureLocked;
+                            params.setAutoExposureLock(isExposureLocked);
+
+                            mCamera.setParameters(params);
+                            String message = (isExposureLocked) ? "Locked" : "Unlocked";
+                            Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }, 1000);
+
+                //mCamera.setDisplayOrientation(270);
+
+/*                if (params.isAutoExposureLockSupported()) {
+                    isExposureLocked = !isExposureLocked;
+                    params.setAutoExposureLock(isExposureLocked);
+                    mCamera.setParameters(params);
+                    String message = (isExposureLocked) ? "Locked" : "Unlocked";
+                    Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+                }*/
+
+                //this.setExposure((int) (this.getMinExposure()));// * 0.75 + this.getMinExposure() * 0.25));
 
                 if (sizes != null) {
                     /* Select the size that fits surface considering maximum size allowed */
@@ -293,6 +329,50 @@ public class JavaCameraView extends CameraBridgeViewBase implements PreviewCallb
         }
         if (mCamera != null)
             mCamera.addCallbackBuffer(mBuffer);
+    }
+
+    public int getMaxExposure() {
+        int max = 0;
+        Camera.Parameters params = mCamera.getParameters();
+        if (params != null) {
+            max = params.getMaxExposureCompensation();
+        }
+        Log.d(TAG,"max exposure" + max);
+        return max;
+    }
+
+    public int getMinExposure() {
+        int min = 0;
+        Camera.Parameters params = mCamera.getParameters();
+        if (params != null) {
+            min = params.getMinExposureCompensation();
+        }
+        Log.d(TAG,"max exposure" + min);
+        return min;
+    }
+
+    public void setExposure(int value) {
+        Camera.Parameters params = mCamera.getParameters();
+
+        params.setExposureCompensation(value);
+
+        Log.d("setExposure", String.valueOf(value));
+        mCamera.setParameters(params);
+    }
+
+    public boolean isExposureLocked() {
+        return isExposureLocked;
+    }
+
+    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    public boolean getAutoExposuerLockState() {
+        Camera.Parameters params = mCamera.getParameters();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+            if (params.isAutoExposureLockSupported()) {
+                return params.getAutoExposureLock();
+            }
+        }
+        return false;
     }
 
     private class JavaCameraFrame implements CvCameraViewFrame {
