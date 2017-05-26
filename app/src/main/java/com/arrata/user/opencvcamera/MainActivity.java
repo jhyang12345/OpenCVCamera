@@ -33,6 +33,7 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.photo.Photo;
 import org.opencv.video.BackgroundSubtractor;
 import org.opencv.video.BackgroundSubtractorKNN;
 import org.opencv.video.BackgroundSubtractorMOG2;
@@ -218,12 +219,23 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         mog2 = Video.createBackgroundSubtractorMOG2();
         mog = Video.createBackgroundSubtractorKNN();
+        mog2.setDetectShadows(true);
+        mog2.setShadowValue(0);
+        mog2.setShadowThreshold(0.3);
+        Log.d("ThresholdGen", String.valueOf(mog2.getVarThresholdGen()));
+        mog2.setVarThresholdGen(15.0);//defaut 0.9
+        Log.d("MeanVariance", String.valueOf(mog2.getVarMax()));
+        Log.d("MinVariance", String.valueOf(mog2.getVarMin()));
+        mog2.setVarMin(16.0);//Gaussian Variance
+
+
+        //mog.setDetectShadows(false);
+        //mog.setShadowValue(0);
 
         //camera2Renderer; = ()
 
         mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.HelloOpenCvView);
         mOpenCvCameraView.setMaxFrameSize(352, 288);//setting max frame size
-
 
 
 
@@ -320,6 +332,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         if(initialBackground == null) {
             initialBackground = inputFrame;
             backgroundTime = System.currentTimeMillis();
+
             return inputFrame;
 
         } else {
@@ -330,12 +343,17 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             System.gc();
             Mat fgMask = new Mat();
 
+            Imgproc.GaussianBlur(inputFrame, inputFrame, new Size(11, 11), 2.0);
+
             if(System.currentTimeMillis() - backgroundTime < 3000) {
                 mog2.apply(inputFrame, fgMask, 0.05);
+
             } else {
-                mog2.apply(inputFrame, fgMask, 0.0001);
-                Imgproc.dilate(inputFrame, inputFrame, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)));
-                Imgproc.erode(inputFrame, inputFrame, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)));
+                mog2.apply(inputFrame, fgMask, 0.00001);
+                //Imgproc.medianBlur(inputFrame, inputFrame, 3);
+//                Imgproc.dilate(inputFrame, inputFrame, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(10, 10)));
+//                Imgproc.erode(inputFrame, inputFrame, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(10,10)));
+
 
             }
 
@@ -345,7 +363,18 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             Mat flipped = new Mat();
             Core.flip(fgMask, flipped, 1);
 
+            //Photo.inpaint
+            Imgproc.erode(flipped, flipped, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5, 5)));
+            Imgproc.dilate(flipped, flipped, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5, 5)));
+            Imgproc.medianBlur(flipped, flipped, 3);
 
+            //Photo.fastNlMeansDenoising(flipped, flipped);
+
+
+            //Log.d("Rows", String.valueOf(flipped.rows()));
+            //Log.d("Cols", String.valueOf(flipped.cols()));
+
+            //Utility.iterateMat(flipped);
             return flipped;
         }
 

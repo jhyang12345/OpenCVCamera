@@ -157,13 +157,15 @@ public class JavaCameraView extends CameraBridgeViewBase implements PreviewCallb
                         if (params.isAutoExposureLockSupported()) {
                             isExposureLocked = !isExposureLocked;
                             params.setAutoExposureLock(isExposureLocked);
-
+                            params.setPreviewFpsRange(10000, 15000);
                             mCamera.setParameters(params);
                             String message = (isExposureLocked) ? "Locked" : "Unlocked";
                             Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
                         }
                     }
                 }, 1000);
+
+
 
                 //mCamera.setDisplayOrientation(270);
 
