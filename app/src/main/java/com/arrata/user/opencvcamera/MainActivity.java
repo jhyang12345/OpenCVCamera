@@ -187,7 +187,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 isExposureLocked = !isExposureLocked;
                 params.setAutoExposureLock(!isExposureLocked);
                 mCamera.setParameters(params);
-
+T
 
             }
             params.setExposureCompensation(150);
