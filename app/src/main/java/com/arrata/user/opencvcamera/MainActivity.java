@@ -31,6 +31,7 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
@@ -40,6 +41,10 @@ import org.opencv.video.BackgroundSubtractorKNN;
 import org.opencv.video.BackgroundSubtractorMOG2;
 import org.opencv.video.Video;
 import org.opencv.videoio.VideoCapture;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener{
 
@@ -51,6 +56,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     VideoCapture capture;
     BackgroundSubtractorMOG2 mog2;
     BackgroundSubtractorKNN mog;
+
 
     CameraDevice cameraDevice;
     CameraCharacteristics mCameraCharacteristics;
@@ -225,6 +231,7 @@ T
 
         mog2 = Video.createBackgroundSubtractorMOG2();
         mog = Video.createBackgroundSubtractorKNN();
+
         //mog2.setDetectShadows(true);
         //mog2.setShadowThreshold(0.3);
         mog2.setShadowValue(0);
@@ -232,7 +239,14 @@ T
         //mog2.setVarThresholdGen(5.0);//default 0.9 // was 19.0
         Log.d("MeanVariance", String.valueOf(mog2.getVarMax()));
         Log.d("MinVariance", String.valueOf(mog2.getVarMin()));
-        //mog2.setVarMin(10.0);//Gaussian Variance
+        //mog2.setVarMin(0.7);//Gaussian Variance
+
+
+        //mog.setDetectShadows(true);
+        //mog.setShadowValue(0);
+        //mog.setShadowThreshold(0.5);
+        Log.d("History",String.valueOf(mog.getHistory()));
+
 
 
         //mog.setDetectShadows(false);
@@ -353,10 +367,12 @@ T
             //Imgproc.GaussianBlur(inputFrame, inputFrame, new Size(5, 5), 2.0);
 
             if(System.currentTimeMillis() - backgroundTime < 3000) {
-                mog2.apply(inputFrame, fgMask, 0.05);
+                //mog2.apply(inputFrame, fgMask, 0.05);
+                mog.apply(inputFrame, fgMask, 0.05);
 
             } else {
-                mog2.apply(inputFrame, fgMask, 0.00001);
+                //mog2.apply(inputFrame, fgMask, 0.00001);
+                mog.apply(inputFrame, fgMask, 0.00001);
                 //Imgproc.medianBlur(inputFrame, inputFrame, 3);
 //                Imgproc.dilate(inputFrame, inputFrame, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(10, 10)));
 //                Imgproc.erode(inputFrame, inputFrame, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(10,10)));
@@ -370,16 +386,19 @@ T
             Mat flipped = new Mat();
             Core.flip(fgMask, flipped, 1);
 
+            //Utility.whiteContours(flipped);
 
-            //Photo.inpaint
-            Imgproc.dilate(flipped, flipped, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5, 5)));
-            Imgproc.erode(flipped, flipped, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5, 5)));
+            Imgproc.dilate(flipped, flipped, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(8, 8)));
+            //Imgproc.erode(flipped, flipped, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5, 5)));
             //order has been changed this order seems to fit best
             //changed from 5, 5
-            Imgproc.medianBlur(flipped, flipped, 5);
-            //blurring is necessary
 
-            //Photo.fastNlMeansDenoising(flipped, flipped);
+            //Imgproc.medianBlur(flipped, flipped, 5);
+
+
+            Utility.whiteContours(flipped);
+
+            //Utility.removeNoise(flipped);
 
 
             //Log.d("Rows", String.valueOf(flipped.rows()));
@@ -398,6 +417,7 @@ T
 
 
             return flipped;
+            //return contourOutput;
         }
 
     }

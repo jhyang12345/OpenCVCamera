@@ -3,6 +3,13 @@ package com.arrata.user.opencvcamera;
 import android.util.Log;
 
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Created by USER on 2017-05-23.
@@ -86,12 +93,22 @@ public class Utility {
                     double val[] = {127.0};
                     mat.put(j, i, val);
                 }
-            } else if(seen && !bottom && columncount[i] == 0) {
+            } /*else if(seen && !bottom && columncount[i] == 0) {
                 for(int j = 0; j < mat.rows(); ++j) {
                     double val[] = {127.0};
                     mat.put(j, i, val);
                     bottom = true;
                 }
+            }*/
+        }
+
+        for(int i = mat.cols() - 1; i >= 0; --i) {
+            if(Utility.regions(mat, i) > 1) {
+                for(int j = 0; j < mat.rows(); ++j) {
+                    double val[] = {127.0};
+                    mat.put(j, i, val);
+                }
+                break;
             }
         }
 
@@ -104,6 +121,89 @@ public class Utility {
         }
     }
 
+    static int regions(Mat mat, int col) {
+        boolean waswhite = false;
+        int regions = 0;
+        for(int i = 0; i < mat.rows(); ++i) {
+            if(mat.get(i, col)[0]  > 0) {
+                waswhite = true;
+            }else if(waswhite && mat.get(i, col)[0] == 0) {
+                regions++;
+                waswhite = false;
+            }
+        }
+        return regions;
+    }
 
+    static void whiteContours(Mat flipped) {
+        Mat mHierarchy = new Mat();
+        List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
 
+        Imgproc.findContours(flipped, contours, mHierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+        //blurring is necessary
+
+        //Photo.fastNlMeansDenoising(flipped, flipped);
+
+        double maxVal = 0;
+        int maxValIdx = 0;
+        for (int contourIdx = 0; contourIdx < contours.size(); contourIdx++)
+        {
+            double contourArea = Imgproc.contourArea(contours.get(contourIdx));
+            if (maxVal < contourArea)
+            {
+                maxVal = contourArea;
+                maxValIdx = contourIdx;
+            }
+        }
+
+        for (int contourIdx = 0; contourIdx < contours.size(); contourIdx++)
+        {
+            double contourArea = Imgproc.contourArea(contours.get(contourIdx));
+            if (maxVal > contourArea)
+            {
+                Imgproc.fillPoly(flipped, Arrays.asList(contours.get(contourIdx)), new Scalar(0));
+            } else {
+                //Imgproc.fillPoly(flipped, Arrays.asList(contours.get(contourIdx)), new Scalar(255));
+            }
+        }
+
+        Imgproc.drawContours(flipped, contours, maxValIdx, new Scalar(255), 1);
+
+    }
+
+    static void removeNoise(Mat flipped) {
+        Mat mHierarchy = new Mat();
+        List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+
+        Imgproc.findContours(flipped, contours, mHierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+
+        double maxVal = 0;
+        int maxValIdx = 0;
+        for (int contourIdx = 0; contourIdx < contours.size(); contourIdx++)
+        {
+            double contourArea = Imgproc.contourArea(contours.get(contourIdx));
+            if (maxVal < contourArea)
+            {
+                maxVal = contourArea;
+                maxValIdx = contourIdx;
+            }
+        }
+
+        Imgproc.drawContours(flipped, contours, maxValIdx, new Scalar(0), 3);
+
+        //find contours again
+        Imgproc.findContours(flipped, contours, mHierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+
+        for (int contourIdx = 0; contourIdx < contours.size(); contourIdx++)
+        {
+            double contourArea = Imgproc.contourArea(contours.get(contourIdx));
+            if (maxVal < contourArea)
+            {
+                maxVal = contourArea;
+                maxValIdx = contourIdx;
+            }
+        }
+
+        Imgproc.drawContours(flipped, contours, maxValIdx, new Scalar(255), 3);
+    }
 }
