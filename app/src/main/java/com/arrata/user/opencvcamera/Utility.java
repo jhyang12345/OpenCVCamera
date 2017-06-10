@@ -72,12 +72,35 @@ public class Utility {
                     }
                 }
             }
-            if(whitestart < whiteend) {
+            if(whitestart != -1 && whiteend != -1 && whitestart < whiteend) {
                 columncount[i] = whitecount[whiteend] - whitecount[whitestart];
             }
         }
+
+        boolean seen = false;
+        boolean bottom = false;
         for(int i = 0; i < mat.cols(); ++i) {
-            Log.d("Counter", String.valueOf(i) + " rows " + String.valueOf(columncount[i]));
+            if(!seen && columncount[i] > 0) {
+                seen = true;
+                for(int j = 0; j < mat.rows(); ++j) {
+                    double val[] = {127.0};
+                    mat.put(j, i, val);
+                }
+            } else if(seen && !bottom && columncount[i] == 0) {
+                for(int j = 0; j < mat.rows(); ++j) {
+                    double val[] = {127.0};
+                    mat.put(j, i, val);
+                    bottom = true;
+                }
+            }
+        }
+
+
+        for(int i = 0; i < mat.rows(); ++i) {
+           // Log.d("Counter", String.valueOf(i) + " rows " + String.valueOf(columncount[i]));
+            double val[] = {127.0};
+            mat.put(i, 0, val);
+
         }
     }
 

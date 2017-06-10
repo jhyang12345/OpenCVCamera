@@ -31,6 +31,7 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.photo.Photo;
@@ -61,7 +62,12 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
     long backgroundTime;
 
+    ColorBlobDetector mDetector;
+    Scalar mBlobColorRgba;
+
     private boolean isExposureLocked = false;
+
+    private boolean processed = false;
 
     // Used to load the 'native-lib' library on application startup.
     static {
@@ -219,14 +225,14 @@ T
 
         mog2 = Video.createBackgroundSubtractorMOG2();
         mog = Video.createBackgroundSubtractorKNN();
-        mog2.setDetectShadows(true);
+        //mog2.setDetectShadows(true);
+        //mog2.setShadowThreshold(0.3);
         mog2.setShadowValue(0);
-        mog2.setShadowThreshold(0.3);
         Log.d("ThresholdGen", String.valueOf(mog2.getVarThresholdGen()));
-        mog2.setVarThresholdGen(15.0);//defaut 0.9
+        //mog2.setVarThresholdGen(5.0);//default 0.9 // was 19.0
         Log.d("MeanVariance", String.valueOf(mog2.getVarMax()));
         Log.d("MinVariance", String.valueOf(mog2.getVarMin()));
-        mog2.setVarMin(16.0);//Gaussian Variance
+        //mog2.setVarMin(10.0);//Gaussian Variance
 
 
         //mog.setDetectShadows(false);
@@ -343,7 +349,8 @@ T
             System.gc();
             Mat fgMask = new Mat();
 
-            Imgproc.GaussianBlur(inputFrame, inputFrame, new Size(11, 11), 2.0);
+            //Imgproc.GaussianBlur(inputFrame, inputFrame, new Size(11, 11), 2.0);
+            //Imgproc.GaussianBlur(inputFrame, inputFrame, new Size(5, 5), 2.0);
 
             if(System.currentTimeMillis() - backgroundTime < 3000) {
                 mog2.apply(inputFrame, fgMask, 0.05);
@@ -363,10 +370,14 @@ T
             Mat flipped = new Mat();
             Core.flip(fgMask, flipped, 1);
 
+
             //Photo.inpaint
-            Imgproc.erode(flipped, flipped, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5, 5)));
             Imgproc.dilate(flipped, flipped, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5, 5)));
-            Imgproc.medianBlur(flipped, flipped, 3);
+            Imgproc.erode(flipped, flipped, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5, 5)));
+            //order has been changed this order seems to fit best
+            //changed from 5, 5
+            Imgproc.medianBlur(flipped, flipped, 5);
+            //blurring is necessary
 
             //Photo.fastNlMeansDenoising(flipped, flipped);
 
@@ -375,6 +386,17 @@ T
             //Log.d("Cols", String.valueOf(flipped.cols()));
 
             //Utility.iterateMat(flipped);
+
+            if(!processed && (System.currentTimeMillis() - backgroundTime > 4000)) {
+
+                processed = true;
+            }
+
+            if(processed) {
+                Utility.head(flipped);
+            }
+
+
             return flipped;
         }
 
