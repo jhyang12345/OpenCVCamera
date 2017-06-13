@@ -109,6 +109,11 @@ public class Utility {
                     mat.put(j, i, val);
                 }
                 break;
+            } else {
+                for(int j = 0; j < mat.rows(); ++j) {
+                    double val[] = {0,0};
+                    mat.put(j, i, val);
+                }
             }
         }
 
