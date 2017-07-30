@@ -4,6 +4,7 @@ import android.util.Log;
 
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
+import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
@@ -86,34 +87,56 @@ public class Utility {
 
         boolean seen = false;
         boolean bottom = false;
+        //top down
+        int headindex = 0;
         for(int i = 0; i < mat.cols(); ++i) {
             if(!seen && columncount[i] > 0) {
                 seen = true;
-                for(int j = 0; j < mat.rows(); ++j) {
-                    double val[] = {127.0};
-                    mat.put(j, i, val);
-                }
-            } /*else if(seen && !bottom && columncount[i] == 0) {
-                for(int j = 0; j < mat.rows(); ++j) {
-                    double val[] = {127.0};
-                    mat.put(j, i, val);
-                    bottom = true;
-                }
-            }*/
+                headindex = i;
+                Imgproc.line(mat, new Point(i, 0), new Point(i, mat.rows() - 1), new Scalar(127,0), 2);
+                break;
+            }
         }
 
+        int regions[] = new int[mat.cols()];
+
+        for(int i = 0; i < mat.cols(); ++i) {
+            regions[i] = Utility.regions(mat, i);
+        }
+
+
+        //bottom up
+        int footindex = 0;
         for(int i = mat.cols() - 1; i >= 0; --i) {
-            if(Utility.regions(mat, i) > 1) {
-                for(int j = 0; j < mat.rows(); ++j) {
-                    double val[] = {127.0};
-                    mat.put(j, i, val);
-                }
+            if(regions[i] > 1) {
+                footindex = i;
+                //get foot index
+                Imgproc.line(mat, new Point(i, 0), new Point(i, mat.rows() - 1), new Scalar(127,0), 2);
                 break;
-            } else {
-                for(int j = 0; j < mat.rows(); ++j) {
-                    double val[] = {0,0};
-                    mat.put(j, i, val);
-                }
+            }
+        }
+
+        int currentcount = 0;
+
+        // in between headindex and footindex
+        for(int i = headindex; i < footindex; ++i) {
+            int thiscount = regions[i];
+        //    Log.d("CurrentCount", String.valueOf(thiscount) + " + "  + String.valueOf(currentcount));
+            if(thiscount == 3) {
+                Imgproc.line(mat, new Point(i, 0), new Point(i, mat.rows() - 1), new Scalar(191,0), 2);
+                currentcount = thiscount;
+                Log.d("RegionCount", String.valueOf(currentcount));
+                break;
+            }
+        }
+
+        // in between headindex and footindex
+        for(int i = footindex; i > headindex; --i) {
+            int thiscount = regions[i];
+            //    Log.d("CurrentCount", String.valueOf(thiscount) + " + "  + String.valueOf(currentcount));
+            if(thiscount == 1) {
+                Imgproc.line(mat, new Point(i, 0), new Point(i, mat.rows() - 1), new Scalar(191,0), 2);
+                break;
             }
         }
 
